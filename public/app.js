@@ -20,8 +20,9 @@ async function initSheet() {
   } catch {
     sheetConfigured = false;
   }
+  // Per-row column is gated on config (avoids clutter when unused); the main
+  // "Add all" button stays visible and explains setup if clicked while unset.
   $('sheetCol').style.display = sheetConfigured ? '' : 'none';
-  $('addAllSheet').style.display = sheetConfigured ? '' : 'none';
   if (lastRender) render(lastRender.data, lastRender.group); // re-render if late
 }
 initSheet();
@@ -214,7 +215,17 @@ function render(data, group) {
 
 // "Add all to Google Sheet" — push every result group.
 $('addAllSheet').addEventListener('click', async () => {
-  if (!lastRender) return;
+  if (!sheetConfigured) {
+    setSheetStatus(
+      'Google Sheet not configured, or the server needs a restart. Set config/sheet.json (webAppUrl) or SHEET_WEBAPP_URL, then restart the server.',
+      'bad',
+    );
+    return;
+  }
+  if (!lastRender) {
+    setSheetStatus('Run a search first, then add its results.', 'bad');
+    return;
+  }
   const btn = $('addAllSheet');
   const rows = lastRender.data.groups.map(groupToRow);
   btn.disabled = true;
