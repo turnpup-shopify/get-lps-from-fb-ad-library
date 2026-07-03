@@ -1,14 +1,38 @@
 // Web server + JSON/SSE API for the Facebook Ad Library landing-page scraper.
 import express from 'express';
+import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { scrapeAdLibrary } from './scraper.js';
 import { aggregate, toSummaryCsv, toAdsCsv } from './aggregate.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const BRANDS_FILE = join(__dirname, '..', 'config', 'brands.json');
 const app = express();
 app.use(express.json());
 app.use(express.static(join(__dirname, '..', 'public')));
+
+// Configurable brand dropdown. Read fresh each request so edits to
+// config/brands.json show up on refresh without restarting the server.
+app.get('/api/brands', (_req, res) => {
+  try {
+    const parsed = JSON.parse(readFileSync(BRANDS_FILE, 'utf8'));
+    const brands = Array.isArray(parsed.brands) ? parsed.brands : [];
+    const clean = brands
+      .filter((b) => b && (b.query || b.pageId) && b.label)
+      .map((b) => ({
+        label: String(b.label),
+        query: b.query ? String(b.query) : '',
+        pageId: b.pageId ? String(b.pageId) : '',
+        country: b.country ? String(b.country).toUpperCase().slice(0, 2) : '',
+        max: Number.isFinite(b.max) ? b.max : undefined,
+      }));
+    res.json({ brands: clean });
+  } catch {
+    // Missing or invalid config is fine — the dropdown just stays empty.
+    res.json({ brands: [] });
+  }
+});
 
 // Simple in-memory cache of the last run per session so CSV export works
 // without re-scraping. Keyed by an opaque id we hand back to the client.

@@ -54,6 +54,30 @@ counts and per-ad preview links, plus **Summary CSV** / **All ads CSV** download
 To target a specific Facebook Page instead of a keyword, type `page:123456789`
 (the numeric Page id) into the brand box.
 
+### Configurable brand dropdown
+
+The UI shows an optional **Saved brands** dropdown populated from
+[`config/brands.json`](config/brands.json). Edit that file and refresh the page —
+no restart needed. Each entry:
+
+```json
+{
+  "brands": [
+    { "label": "Allbirds", "query": "Allbirds", "country": "US" },
+    { "label": "Gymshark", "query": "Gymshark", "country": "US", "max": 500 },
+    { "label": "My Client (by Page)", "pageId": "123456789012345", "country": "US" }
+  ]
+}
+```
+
+- `label` — text shown in the dropdown.
+- `query` — keyword search **or** use `pageId` for a specific Facebook Page.
+- `country` (optional) — 2-letter code applied when the brand is picked.
+- `max` (optional) — ad cap applied when the brand is picked.
+
+Picking a brand just fills the form fields; you can still edit them or type a
+brand freehand. If the file is missing or empty, the dropdown is simply hidden.
+
 ## CLI
 
 ```bash

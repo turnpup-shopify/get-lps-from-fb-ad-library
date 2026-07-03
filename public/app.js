@@ -7,6 +7,37 @@ const rowsEl = $('rows');
 const logEl = $('log');
 
 let currentSource = null;
+let savedBrands = [];
+
+// Populate the optional "Saved brands" dropdown from config/brands.json.
+async function loadSavedBrands() {
+  try {
+    const res = await fetch('/api/brands');
+    const data = await res.json();
+    savedBrands = data.brands || [];
+  } catch {
+    savedBrands = [];
+  }
+  if (!savedBrands.length) return;
+
+  const sel = $('savedBrands');
+  savedBrands.forEach((b, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i);
+    opt.textContent = b.pageId && !b.query ? `${b.label} (Page ${b.pageId})` : b.label;
+    sel.appendChild(opt);
+  });
+  $('savedBrandsRow').style.display = 'flex';
+
+  sel.addEventListener('change', () => {
+    const b = savedBrands[Number(sel.value)];
+    if (!b) return;
+    $('brand').value = b.pageId && !b.query ? `page:${b.pageId}` : b.query;
+    if (b.country) $('country').value = b.country;
+    if (b.max) $('max').value = b.max;
+  });
+}
+loadSavedBrands();
 
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => ({

@@ -1,0 +1,10 @@
+{
+  "_comment": "Configure the brand dropdown shown in the web UI. Edit this file and refresh the page — no restart needed. Each brand: label (shown in dropdown), and either a 'query' (keyword search) or a 'pageId' (numeric Facebook Page id). Optional per-brand 'country' (2-letter) and 'max' (ad cap) override the form defaults when selected.",
+  "brands": [
+    { "label": "Allbirds", "query": "Allbirds", "country": "US" },
+    { "label": "Ridge Wallet", "query": "Ridge Wallet", "country": "US" },
+    { "label": "Gymshark", "query": "Gymshark", "country": "US" },
+    { "label": "Bombas", "query": "Bombas", "country": "US" },
+    { "label": "Warby Parker", "query": "Warby Parker", "country": "US" }
+  ]
+}
