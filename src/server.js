@@ -111,17 +111,30 @@ app.post('/api/sheet', async (req, res) => {
       redirect: 'follow',
     });
     const text = await r.text();
+    const finalUrl = r.url || '';
     let data;
     try {
       data = JSON.parse(text);
     } catch {
-      // Apps Script often returns an HTML login page if the deployment isn't
-      // set to "Anyone" access — surface a useful hint instead of raw HTML.
+      // Non-JSON usually means Google served an HTML page: a sign-in page
+      // (deployment not "Anyone"), or an Apps Script error page. Log the full
+      // body server-side and surface a short, readable snippet to the UI.
+      const snippet = text
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 240);
+      const looksLikeLogin = /sign in|accounts\.google\.com|use another account/i.test(text);
+      console.error('[sheet] non-JSON response', { status: r.status, finalUrl, body: text.slice(0, 1000) });
       data = {
         success: false,
         error:
-          `Unexpected non-JSON response from the Apps Script (HTTP ${r.status}). ` +
-          'Check the deployment is a Web App with access set to "Anyone".',
+          `Apps Script returned HTML, not JSON (HTTP ${r.status}). ` +
+          (looksLikeLogin
+            ? 'It looks like a Google sign-in page — set the Web App deployment to "Execute as: Me" and "Who has access: Anyone", then redeploy. '
+            : 'Make sure your Apps Script doPost returns ContentService JSON, and that you redeployed after changes. ') +
+          (finalUrl && !/\/macros\/s\//.test(finalUrl) ? `Final URL: ${finalUrl}. ` : '') +
+          (snippet ? `Response starts: "${snippet}"` : ''),
       };
     }
     res.status(data.success === false ? 502 : 200).json(data);
