@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Facebook Ad Library → Landing Pages</title>
+  <style>
+    :root {
+      --bg: #0f172a; --panel: #1e293b; --panel-2: #273549; --border: #334155;
+      --text: #e2e8f0; --muted: #94a3b8; --accent: #3b82f6; --accent-2: #2563eb;
+      --good: #22c55e; --chip: #0ea5e9;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg); color: var(--text); line-height: 1.5;
+    }
+    header { padding: 28px 20px 8px; text-align: center; }
+    header h1 { margin: 0 0 4px; font-size: 1.5rem; }
+    header p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    main { max-width: 1080px; margin: 0 auto; padding: 16px 20px 60px; }
+    .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 18px; }
+    form { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 12px; align-items: end; }
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    input, select {
+      background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+      border-radius: 8px; padding: 10px 12px; font-size: 0.95rem; width: 100%;
+    }
+    input:focus, select:focus { outline: none; border-color: var(--accent); }
+    button {
+      background: var(--accent); color: #fff; border: 0; border-radius: 8px;
+      padding: 11px 18px; font-size: 0.95rem; font-weight: 600; cursor: pointer; white-space: nowrap;
+    }
+    button:hover { background: var(--accent-2); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 10px; }
+    #status { display: none; }
+    #status.show { display: block; }
+    .log { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; color: var(--muted); max-height: 120px; overflow-y: auto; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .stats { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 4px; }
+    .stat b { font-size: 1.6rem; display: block; }
+    .stat span { color: var(--muted); font-size: 0.8rem; }
+    .toolbar { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-bottom: 10px; }
+    .toolbar a { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; text-decoration: none; }
+    .toolbar a:hover { border-color: var(--accent); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; font-size: 0.9rem; }
+    th { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; }
+    tr:hover td { background: var(--panel-2); }
+    .count-pill { background: var(--chip); color: #04202e; font-weight: 700; border-radius: 999px; padding: 2px 10px; font-size: 0.85rem; }
+    .web a { color: var(--text); text-decoration: none; font-weight: 600; }
+    .web a:hover { color: var(--accent); text-decoration: underline; }
+    .previews { display: flex; flex-wrap: wrap; gap: 6px; }
+    .previews a { font-size: 0.78rem; color: var(--chip); text-decoration: none; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
+    .previews a:hover { border-color: var(--chip); }
+    .error { color: #fca5a5; }
+    .muted { color: var(--muted); }
+    details summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
+    @media (max-width: 780px) { form { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Facebook Ad Library → Landing Pages</h1>
+    <p>Scrape a brand's ads, find the websites behind them, count ads per link, and grab every ad preview.</p>
+  </header>
+
+  <main>
+    <div class="card">
+      <form id="scrapeForm">
+        <div class="field" style="grid-column: span 1;">
+          <label for="brand">Brand / keyword</label>
+          <input id="brand" name="brand" placeholder="e.g. Allbirds" autocomplete="off" required />
+        </div>
+        <div class="field">
+          <label for="country">Country</label>
+          <input id="country" name="country" value="US" maxlength="2" />
+        </div>
+        <div class="field">
+          <label for="max">Max ads</label>
+          <input id="max" name="max" type="number" value="300" min="1" max="2000" />
+        </div>
+        <div class="field">
+          <label for="group">Group by</label>
+          <select id="group" name="group">
+            <option value="domain">Website (domain)</option>
+            <option value="url">Exact landing URL</option>
+          </select>
+        </div>
+        <button type="submit" id="go">Scrape</button>
+      </form>
+      <div class="hint">
+        Tip: you can also target a specific Facebook Page by pasting its numeric Page ID in the brand box as <code>page:123456789</code>.
+        Scraping loads the public Ad Library and scrolls to page through results, so larger runs take longer.
+      </div>
+    </div>
+
+    <div class="card" id="status">
+      <div id="statusHead"><span class="spinner"></span><b id="statusMsg">Starting…</b> <span id="statusCount" class="muted"></span></div>
+      <details style="margin-top:10px;"><summary>Progress log</summary><div class="log" id="log"></div></details>
+    </div>
+
+    <div class="card" id="results" style="display:none;">
+      <div class="stats">
+        <div class="stat"><b id="sAds">0</b><span>total ads</span></div>
+        <div class="stat"><b id="sGroups">0</b><span id="sGroupsLabel">unique websites</span></div>
+        <div class="stat"><b id="sTop">–</b><span>top website</span></div>
+      </div>
+      <p class="muted" style="margin:6px 0 14px;"><a id="searchLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);">Open this search on Facebook Ad Library ↗</a></p>
+      <div class="toolbar">
+        <a id="dlSummary" href="#">⬇ Summary CSV</a>
+        <a id="dlAds" href="#">⬇ All ads CSV</a>
+      </div>
+      <table>
+        <thead>
+          <tr><th>#</th><th>Ads</th><th>Website</th><th>Ad previews</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

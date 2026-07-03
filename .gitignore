@@ -1,0 +1,8 @@
+node_modules/
+*.log
+# scraper output files
+*-summary.csv
+*-ads.csv
+results.json
+*.local.json
+.DS_Store
