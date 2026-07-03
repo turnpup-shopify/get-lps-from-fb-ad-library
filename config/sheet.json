@@ -1,0 +1,5 @@
+{
+  "_comment": "Google Sheet endpoint used by the 'Add to Google Sheet' button. If your Apps Script requires a token, prefer setting it via the SHEET_TOKEN env var (kept out of git) rather than putting it here.",
+  "webAppUrl": "https://script.google.com/macros/s/AKfycbzATCVi1v0ZjtbWciYSBmJK64nO833JGgsqwXOwu75CzXmJ-JJ6fE0OoJAnPjd5aH03kg/exec",
+  "token": ""
+}

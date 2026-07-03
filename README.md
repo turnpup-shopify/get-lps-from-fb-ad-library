@@ -129,17 +129,20 @@ When configured, the results screen shows a green **➕ Add all to Google Sheet*
 button (and a **➕ Sheet** button on each row). Rows are de-duplicated by link
 in the sheet, so re-running is safe.
 
-Setup (one time):
+The endpoint is pre-configured in [`config/sheet.json`](config/sheet.json), so
+the button works out of the box. To point it at a different sheet, edit that
+file's `webAppUrl` (or set the `SHEET_WEBAPP_URL` env var, which overrides it).
+
+To set it up from scratch:
 
 1. Deploy the included Apps Script: open your Google Sheet →
    **Extensions → Apps Script**, paste [`docs/apps-script.gs`](docs/apps-script.gs),
    then **Deploy → New deployment → Web app** with *Execute as: Me* and
    *Who has access: Anyone*. Copy the resulting `…/exec` URL.
-2. Tell the app about it, either way:
-   - copy `config/sheet.example.json` → `config/sheet.json` and set `webAppUrl`
-     (and `token` if you set one), **or**
-   - set env vars `SHEET_WEBAPP_URL` (and `SHEET_TOKEN`) before `npm start`.
-3. Restart isn't needed for config edits — refresh the page.
+2. Put it in `config/sheet.json` (`webAppUrl`), or set env `SHEET_WEBAPP_URL`.
+3. If your script requires a token, set it via the `SHEET_TOKEN` env var (keeps
+   the secret out of git); `config/sheet.json` `token` also works.
+4. Config edits apply on page refresh — no restart needed.
 
 The web-app URL and token live **server-side only**; the browser posts to this
 app's `/api/sheet`, which forwards to Google. Each pushed row contains:

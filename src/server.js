@@ -18,14 +18,21 @@ app.use(express.static(join(__dirname, '..', 'public')));
 // Google Sheet endpoint config: env vars win, else config/sheet.json. Read
 // fresh each request so config edits apply without a restart.
 function readSheetConfig() {
-  const envUrl = (process.env.SHEET_WEBAPP_URL || '').trim();
-  if (envUrl) return { webAppUrl: envUrl, token: (process.env.SHEET_TOKEN || '').trim() };
+  let fileUrl = '';
+  let fileToken = '';
   try {
     const cfg = JSON.parse(readFileSync(SHEET_FILE, 'utf8'));
-    return { webAppUrl: (cfg.webAppUrl || '').trim(), token: (cfg.token || '').trim() };
+    fileUrl = (cfg.webAppUrl || '').trim();
+    fileToken = (cfg.token || '').trim();
   } catch {
-    return { webAppUrl: '', token: '' };
+    /* no file — fall back to env */
   }
+  // Env overrides per-field, so a secret token can stay out of the committed
+  // config while the (low-sensitivity) URL lives in config/sheet.json.
+  return {
+    webAppUrl: (process.env.SHEET_WEBAPP_URL || '').trim() || fileUrl,
+    token: (process.env.SHEET_TOKEN || '').trim() || fileToken,
+  };
 }
 
 // Parse config/searches.txt — plain "LABEL = URL" lines, # comments ignored.
