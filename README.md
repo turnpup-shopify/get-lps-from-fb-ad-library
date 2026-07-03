@@ -145,9 +145,15 @@ To set it up from scratch:
 4. Config edits apply on page refresh — no restart needed.
 
 The web-app URL and token live **server-side only**; the browser posts to this
-app's `/api/sheet`, which forwards to Google. Each pushed row contains:
-`site` (website), `link` (landing URL), `brand` (advertiser Page name), `image`,
-`type`, plus `adCount` and `previewUrl`.
+app's `/api/sheet`, which forwards to Google. It pushes **one row per unique
+landing page**, formatted as:
+
+- **`brands`** = the saved-search label from `config/searches.txt` (or the typed
+  keyword). So name your searches after the brand: `Mars Men = <url>`.
+- **`sites`** = `[Brand] - [landing-page handle]`, where the handle is the last
+  URL path segment with hyphens turned into spaces and Title-Cased —
+  e.g. `.../pages/10-reasons-weightloss-v1` → `Mars Men - 10 Reasons Weightloss V1`.
+- **`links`** = the landing URL. `images` / `Type` are left blank.
 
 The included [`docs/apps-script.gs`](docs/apps-script.gs) writes to a sheet with
 columns **`sites | links | brands | images | Type`** (first tab by default) and

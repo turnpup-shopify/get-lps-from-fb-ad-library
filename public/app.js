@@ -89,7 +89,20 @@ form.addEventListener('submit', (e) => {
   const country = ($('country').value.trim() || 'US').toUpperCase();
   const max = $('max').value || 300;
   const group = $('group').value;
-  lastSearchLabel = brand; // '' when a URL/pageId was used
+
+  // Resolve the brand label for the sheet's "brands" column, preferring the
+  // saved-search label (searches.txt) the user picked or that matches the URL.
+  const sel = $('savedBrands');
+  let label = '';
+  if (sel && sel.value !== '' && savedBrands[Number(sel.value)]) {
+    label = savedBrands[Number(sel.value)].label;
+  } else if (brand) {
+    label = brand; // a typed keyword is itself the brand
+  } else if (url) {
+    const match = savedBrands.find((b) => b.url && b.url === url);
+    if (match) label = match.label;
+  }
+  lastSearchLabel = label;
 
   rowsEl.innerHTML = '';
   logEl.innerHTML = '';
@@ -130,20 +143,50 @@ form.addEventListener('submit', (e) => {
   });
 });
 
-// Build a Google Sheet row from a result group.
-function groupToRow(g) {
-  const brand = (g.ads.find((a) => a.pageName) || {}).pageName || lastSearchLabel || '';
-  const link = g.landingUrls[0] || (g.domain ? `https://${g.domain}` : '');
-  return {
-    site: g.website || g.domain || '(no destination link)',
-    link,
+// Last path segment of a URL, e.g. .../pages/10-reasons-weightloss-v1 -> that.
+function handleFromUrl(u) {
+  try {
+    const parts = new URL(u).pathname.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : '';
+  } catch {
+    return '';
+  }
+}
+
+// "10-reasons-weightloss-v1" -> "10 Reasons Weightloss V1"
+function titleCaseHandle(h) {
+  return h
+    .replace(/[-_]+/g, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1))
+    .join(' ');
+}
+
+// "site" column: "[Brand] - [Title-Cased handle]".
+function makeSiteName(brand, url) {
+  const handle = titleCaseHandle(handleFromUrl(url));
+  if (brand && handle) return `${brand} - ${handle}`;
+  return brand || handle || url;
+}
+
+// Expand a result group into one sheet row per unique landing page.
+function groupToRows(g) {
+  const brand = lastSearchLabel || (g.ads.find((a) => a.pageName) || {}).pageName || '';
+  const urls = g.landingUrls.length ? g.landingUrls : g.domain ? [`https://${g.domain}`] : [];
+  return urls.map((url) => ({
+    site: makeSiteName(brand, url),
+    link: url,
     brand,
     image: '',
     type: '',
-    adCount: g.adCount,
-    previewUrl: g.previewUrls[0] || '',
-    landingUrls: g.landingUrls,
-  };
+  }));
+}
+
+// All rows across the whole result set (one per unique landing page).
+function allRows(data) {
+  return data.groups.flatMap(groupToRows);
 }
 
 function setSheetStatus(msg, cls) {
@@ -192,9 +235,9 @@ function render(data, group) {
       btn.addEventListener('click', async () => {
         btn.disabled = true;
         btn.textContent = 'Adding…';
-        const r = await postRows([groupToRow(g)]).catch((e) => ({ success: false, error: e.message }));
+        const r = await postRows(groupToRows(g)).catch((e) => ({ success: false, error: e.message }));
         if (r.success) {
-          btn.textContent = r.addedCount ? '✓ Added' : '• Duplicate';
+          btn.textContent = r.addedCount ? `✓ Added ${r.addedCount}` : '• Duplicate';
         } else {
           btn.textContent = '⚠ Failed';
           btn.disabled = false;
@@ -227,7 +270,7 @@ $('addAllSheet').addEventListener('click', async () => {
     return;
   }
   const btn = $('addAllSheet');
-  const rows = lastRender.data.groups.map(groupToRow);
+  const rows = allRows(lastRender.data);
   btn.disabled = true;
   const original = btn.textContent;
   btn.textContent = `Adding ${rows.length}…`;

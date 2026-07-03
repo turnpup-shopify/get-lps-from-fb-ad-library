@@ -1,7 +1,14 @@
 # Quick saved searches for the dropdown.
-# One per line, in the form:   LABEL = FULL_AD_LIBRARY_URL
-# Just copy the URL from your browser's address bar on facebook.com/ads/library
-# and paste it here with a label. Lines starting with # are ignored.
+# One per line, in the form:   BRAND = FULL_AD_LIBRARY_URL
+#
+# IMPORTANT: the LABEL is used as the "brands" value when pushing to Google
+# Sheets, and as the prefix in the "sites" column. So name each entry after the
+# brand, e.g.:
+#   Mars Men = https://www.facebook.com/ads/library/?...&view_all_page_id=123
+#   Happy V  = https://www.facebook.com/ads/library/?...&view_all_page_id=456
+#
+# Copy the URL from your browser's address bar on facebook.com/ads/library and
+# paste it here with the brand name. Lines starting with # are ignored.
 # Edit this file and refresh the page — no restart needed.
 
 AG1 = https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&is_targeted_country=false&media_type=all&search_type=page&sort_data[mode]=total_impressions&sort_data[direction]=desc&view_all_page_id=183869772601
