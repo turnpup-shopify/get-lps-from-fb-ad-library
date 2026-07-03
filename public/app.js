@@ -32,7 +32,9 @@ async function loadSavedBrands() {
   sel.addEventListener('change', () => {
     const b = savedBrands[Number(sel.value)];
     if (!b) return;
-    $('brand').value = b.pageId && !b.query ? `page:${b.pageId}` : b.query;
+    if (b.url) $('brand').value = b.url;
+    else if (b.pageId && !b.query) $('brand').value = `page:${b.pageId}`;
+    else $('brand').value = b.query;
     if (b.country) $('country').value = b.country;
     if (b.max) $('max').value = b.max;
   });
@@ -58,8 +60,13 @@ form.addEventListener('submit', (e) => {
 
   let brand = $('brand').value.trim();
   let pageId = '';
-  const pageMatch = brand.match(/^page:\s*(\d+)$/i);
-  if (pageMatch) { pageId = pageMatch[1]; brand = ''; }
+  let url = '';
+  if (/^https?:\/\//i.test(brand)) {
+    url = brand; brand = '';
+  } else {
+    const pageMatch = brand.match(/^page:\s*(\d+)$/i);
+    if (pageMatch) { pageId = pageMatch[1]; brand = ''; }
+  }
 
   const country = ($('country').value.trim() || 'US').toUpperCase();
   const max = $('max').value || 300;
@@ -73,7 +80,7 @@ form.addEventListener('submit', (e) => {
   $('statusCount').textContent = '';
   $('go').disabled = true;
 
-  const params = new URLSearchParams({ brand, pageId, country, max, group });
+  const params = new URLSearchParams({ brand, pageId, url, country, max, group });
   const src = new EventSource(`/api/scrape?${params.toString()}`);
   currentSource = src;
 

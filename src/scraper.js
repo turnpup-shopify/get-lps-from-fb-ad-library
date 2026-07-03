@@ -55,6 +55,27 @@ export function buildSearchUrl({ brand, country = 'US', pageId = '' }) {
 }
 
 /**
+ * Validate a user-supplied Ad Library URL. We only ever navigate to
+ * facebook.com so a pasted URL can't be used to drive the browser elsewhere.
+ * Returns the URL unchanged if valid; throws otherwise.
+ */
+export function assertAdLibraryUrl(rawUrl) {
+  let u;
+  try {
+    u = new URL(rawUrl);
+  } catch {
+    throw new Error(`Not a valid URL: ${rawUrl}`);
+  }
+  if (u.protocol !== 'https:' && u.protocol !== 'http:') {
+    throw new Error('URL must be http(s).');
+  }
+  if (!/(^|\.)facebook\.com$/i.test(u.hostname)) {
+    throw new Error('URL must be a facebook.com Ad Library link.');
+  }
+  return rawUrl;
+}
+
+/**
  * Split a Facebook response body (which may be a `for (;;);` prefixed object,
  * newline-delimited JSON, or several concatenated JSON objects) into parsed
  * JS values. Anything that doesn't parse is skipped.
@@ -218,14 +239,22 @@ export async function scrapeAdLibrary(opts) {
     brand,
     country = 'US',
     pageId = '',
+    url = '',
     maxAds = 300,
     headless = true,
     onProgress = () => {},
   } = opts;
 
-  if (!brand && !pageId) throw new Error('Provide a brand keyword or a pageId.');
-
-  const searchUrl = buildSearchUrl({ brand, country, pageId });
+  // A pasted Ad Library URL wins — it carries filters (sort, active-only,
+  // Page id, etc.) the brand/country form can't express.
+  let searchUrl;
+  if (url) {
+    searchUrl = assertAdLibraryUrl(url.trim());
+  } else if (brand || pageId) {
+    searchUrl = buildSearchUrl({ brand, country, pageId });
+  } else {
+    throw new Error('Provide a brand keyword, a pageId, or a full Ad Library URL.');
+  }
   onProgress('launching browser');
 
   // Route through an outbound proxy when the environment provides one. The

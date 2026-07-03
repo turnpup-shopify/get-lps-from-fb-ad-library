@@ -16,6 +16,7 @@ function parseArgs(argv) {
     const next = () => argv[++i];
     switch (a) {
       case '--brand': case '-b': args.brand = next(); break;
+      case '--url': case '-u': args.url = next(); break;
       case '--page-id': args.pageId = next(); break;
       case '--country': case '-c': args.country = next(); break;
       case '--max': case '-m': args.max = parseInt(next(), 10); break;
@@ -25,7 +26,10 @@ function parseArgs(argv) {
       case '--show-browser': args.headless = false; break;
       case '--help': case '-h': args.help = true; break;
       default:
-        if (!a.startsWith('-') && !args.brand) args.brand = a;
+        if (!a.startsWith('-') && !args.brand && !args.url) {
+          if (/^https?:\/\//i.test(a)) args.url = a;
+          else args.brand = a;
+        }
     }
   }
   return args;
@@ -41,7 +45,8 @@ Usage:
   node src/cli.js --brand "Brand Name" [options]
 
 Options:
-  -b, --brand <name>     Brand / keyword to search (required unless --page-id)
+  -b, --brand <name>     Brand / keyword to search (required unless --url/--page-id)
+  -u, --url <url>        Full Ad Library URL to scrape (keeps its filters/sorting)
       --page-id <id>     Search a specific Facebook Page id instead of a keyword
   -c, --country <code>   2-letter country code (default: US)
   -m, --max <n>          Max ads to collect (default: 300)
@@ -63,16 +68,18 @@ function pad(s, n) {
 
 async function main() {
   const args = parseArgs(process.argv);
-  if (args.help || (!args.brand && !args.pageId)) {
+  if (args.help || (!args.brand && !args.pageId && !args.url)) {
     console.log(HELP);
     process.exit(args.help ? 0 : 1);
   }
 
-  console.error(`\nSearching Facebook Ad Library for "${args.brand || args.pageId}" (${args.country})…\n`);
+  const target = args.url ? args.url : `${args.brand || args.pageId} (${args.country})`;
+  console.error(`\nSearching Facebook Ad Library for ${target}…\n`);
 
   const { ads, searchUrl } = await scrapeAdLibrary({
     brand: args.brand,
     pageId: args.pageId,
+    url: args.url,
     country: args.country,
     maxAds: args.max,
     headless: args.headless,

@@ -7,31 +7,58 @@ import { scrapeAdLibrary } from './scraper.js';
 import { aggregate, toSummaryCsv, toAdsCsv } from './aggregate.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const BRANDS_FILE = join(__dirname, '..', 'config', 'brands.json');
+const CONFIG_DIR = join(__dirname, '..', 'config');
+const BRANDS_FILE = join(CONFIG_DIR, 'brands.json');
+const SEARCHES_FILE = join(CONFIG_DIR, 'searches.txt');
 const app = express();
 app.use(express.json());
 app.use(express.static(join(__dirname, '..', 'public')));
 
-// Configurable brand dropdown. Read fresh each request so edits to
-// config/brands.json show up on refresh without restarting the server.
-app.get('/api/brands', (_req, res) => {
+// Parse config/searches.txt — plain "LABEL = URL" lines, # comments ignored.
+function readSearchesTxt() {
+  let text;
+  try {
+    text = readFileSync(SEARCHES_FILE, 'utf8');
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const rawLine of text.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+    const eq = line.indexOf('=');
+    if (eq === -1) continue;
+    const label = line.slice(0, eq).trim();
+    const url = line.slice(eq + 1).trim();
+    if (label && /^https?:\/\//i.test(url)) out.push({ label, url });
+  }
+  return out;
+}
+
+// Parse config/brands.json — structured { label, query|pageId, country, max }.
+function readBrandsJson() {
   try {
     const parsed = JSON.parse(readFileSync(BRANDS_FILE, 'utf8'));
     const brands = Array.isArray(parsed.brands) ? parsed.brands : [];
-    const clean = brands
-      .filter((b) => b && (b.query || b.pageId) && b.label)
+    return brands
+      .filter((b) => b && (b.query || b.pageId || b.url) && b.label)
       .map((b) => ({
         label: String(b.label),
         query: b.query ? String(b.query) : '',
         pageId: b.pageId ? String(b.pageId) : '',
+        url: b.url ? String(b.url) : '',
         country: b.country ? String(b.country).toUpperCase().slice(0, 2) : '',
         max: Number.isFinite(b.max) ? b.max : undefined,
       }));
-    res.json({ brands: clean });
   } catch {
-    // Missing or invalid config is fine — the dropdown just stays empty.
-    res.json({ brands: [] });
+    return [];
   }
+}
+
+// Dropdown = URL searches (searches.txt) first, then structured brands.json.
+// Read fresh each request so config edits show up on refresh, no restart.
+app.get('/api/brands', (_req, res) => {
+  res.json({ brands: [...readSearchesTxt(), ...readBrandsJson()] });
 });
 
 // Simple in-memory cache of the last run per session so CSV export works
@@ -48,12 +75,13 @@ function clampInt(v, def, min, max) {
 app.get('/api/scrape', async (req, res) => {
   const brand = (req.query.brand || '').toString().trim();
   const pageId = (req.query.pageId || '').toString().trim();
+  const directUrl = (req.query.url || '').toString().trim();
   const country = (req.query.country || 'US').toString().trim().toUpperCase().slice(0, 2) || 'US';
   const maxAds = clampInt(req.query.max, 300, 1, 2000);
   const groupBy = req.query.group === 'url' ? 'url' : 'domain';
 
-  if (!brand && !pageId) {
-    res.status(400).json({ error: 'Provide a brand keyword or pageId.' });
+  if (!brand && !pageId && !directUrl) {
+    res.status(400).json({ error: 'Provide a brand keyword, pageId, or Ad Library URL.' });
     return;
   }
 
@@ -73,6 +101,7 @@ app.get('/api/scrape', async (req, res) => {
     const { ads, searchUrl } = await scrapeAdLibrary({
       brand,
       pageId,
+      url: directUrl,
       country,
       maxAds,
       headless: true,
@@ -80,7 +109,7 @@ app.get('/api/scrape', async (req, res) => {
     });
 
     const summary = aggregate(ads, groupBy);
-    const runId = `${Date.now()}-${Math.floor(ads.length)}-${brand || pageId}`.replace(/\s+/g, '_');
+    const runId = `${Date.now()}-${Math.floor(ads.length)}-${brand || pageId || 'url'}`.replace(/\s+/g, '_');
     runs.set(runId, { ads, summary, searchUrl });
     if (runs.size > 50) runs.delete(runs.keys().next().value);
 

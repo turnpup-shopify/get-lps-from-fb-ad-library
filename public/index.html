@@ -79,8 +79,8 @@
       </div>
       <form id="scrapeForm">
         <div class="field" style="grid-column: span 1;">
-          <label for="brand">Brand / keyword</label>
-          <input id="brand" name="brand" placeholder="e.g. Allbirds" autocomplete="off" required />
+          <label for="brand">Brand, keyword, or full Ad Library URL</label>
+          <input id="brand" name="brand" placeholder="e.g. Allbirds  —  or paste a full facebook.com/ads/library URL" autocomplete="off" required />
         </div>
         <div class="field">
           <label for="country">Country</label>
@@ -100,7 +100,8 @@
         <button type="submit" id="go">Scrape</button>
       </form>
       <div class="hint">
-        Tip: you can also target a specific Facebook Page by pasting its numeric Page ID in the brand box as <code>page:123456789</code>.
+        Tips: paste a <b>full Ad Library URL</b> (with your own filters/sorting) straight into the box, or target a Page by its numeric id as <code>page:123456789</code>.
+        Save reusable URLs in <code>config/searches.txt</code> as <code>LABEL = URL</code> to grow the dropdown.
         Scraping loads the public Ad Library and scrolls to page through results, so larger runs take longer.
       </div>
     </div>

@@ -51,8 +51,24 @@ Enter a brand (e.g. `Allbirds`), pick a country and a max ad count, choose group
 and hit **Scrape**. You'll see live progress, then a table of websites with ad
 counts and per-ad preview links, plus **Summary CSV** / **All ads CSV** downloads.
 
-To target a specific Facebook Page instead of a keyword, type `page:123456789`
-(the numeric Page id) into the brand box.
+You can also **paste a full Ad Library URL** straight into the box — handy when
+you've set up filters/sorting on facebook.com (active-only, sort by impressions,
+a specific Page, etc.) and just want to scrape exactly that view. Or target a
+Page by id with `page:123456789`.
+
+### Quick saved searches — `config/searches.txt`
+
+The fastest way to save reusable searches. One per line, `LABEL = URL`:
+
+```
+# config/searches.txt  — edit and refresh the page, no restart needed
+AG1 = https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=US&media_type=all&search_type=page&sort_data[mode]=total_impressions&sort_data[direction]=desc&view_all_page_id=183869772601
+AG2 = https://www.facebook.com/ads/library/?...
+```
+
+Just copy a URL from your browser's address bar on the Ad Library, paste it here
+with a label, and it appears in the **Saved brands** dropdown. Picking it loads
+that exact URL (filters, sorting and all).
 
 ### Configurable brand dropdown
 
@@ -82,6 +98,8 @@ brand freehand. If the file is missing or empty, the dropdown is simply hidden.
 
 ```bash
 node src/cli.js --brand "Allbirds" --country US --max 200
+# or scrape a full URL directly (positional arg works too):
+node src/cli.js --url "https://www.facebook.com/ads/library/?...&view_all_page_id=183869772601"
 ```
 
 Options:
@@ -89,6 +107,7 @@ Options:
 | Flag | Description | Default |
 |------|-------------|---------|
 | `-b, --brand <name>` | Brand / keyword to search | — |
+| `-u, --url <url>` | Full Ad Library URL to scrape (keeps its filters/sorting) | — |
 | `--page-id <id>` | Search a specific Facebook Page id instead of a keyword | — |
 | `-c, --country <code>` | 2-letter country code | `US` |
 | `-m, --max <n>` | Max ads to collect | `300` |
