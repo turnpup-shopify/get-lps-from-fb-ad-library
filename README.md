@@ -123,6 +123,30 @@ node src/cli.js --brand "Ridge Wallet" --group url --out ridge
 # → ridge-summary.csv, ridge-ads.csv, ridge.json
 ```
 
+## Push results to a Google Sheet (optional)
+
+When configured, the results screen shows a green **➕ Add all to Google Sheet**
+button (and a **➕ Sheet** button on each row). Rows are de-duplicated by link
+in the sheet, so re-running is safe.
+
+Setup (one time):
+
+1. Deploy the included Apps Script: open your Google Sheet →
+   **Extensions → Apps Script**, paste [`docs/apps-script.gs`](docs/apps-script.gs),
+   then **Deploy → New deployment → Web app** with *Execute as: Me* and
+   *Who has access: Anyone*. Copy the resulting `…/exec` URL.
+2. Tell the app about it, either way:
+   - copy `config/sheet.example.json` → `config/sheet.json` and set `webAppUrl`
+     (and `token` if you set one), **or**
+   - set env vars `SHEET_WEBAPP_URL` (and `SHEET_TOKEN`) before `npm start`.
+3. Restart isn't needed for config edits — refresh the page.
+
+The web-app URL and token live **server-side only**; the browser posts to this
+app's `/api/sheet`, which forwards to Google. Each pushed row contains:
+`site` (website), `link` (landing URL), `brand` (advertiser Page name), `image`,
+`type`, plus `adCount` and `previewUrl`. If no sheet is configured, the button
+simply doesn't appear.
+
 ## Output
 
 **Summary** (one row per website):

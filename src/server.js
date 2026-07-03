@@ -10,9 +10,23 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_DIR = join(__dirname, '..', 'config');
 const BRANDS_FILE = join(CONFIG_DIR, 'brands.json');
 const SEARCHES_FILE = join(CONFIG_DIR, 'searches.txt');
+const SHEET_FILE = join(CONFIG_DIR, 'sheet.json');
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '4mb' }));
 app.use(express.static(join(__dirname, '..', 'public')));
+
+// Google Sheet endpoint config: env vars win, else config/sheet.json. Read
+// fresh each request so config edits apply without a restart.
+function readSheetConfig() {
+  const envUrl = (process.env.SHEET_WEBAPP_URL || '').trim();
+  if (envUrl) return { webAppUrl: envUrl, token: (process.env.SHEET_TOKEN || '').trim() };
+  try {
+    const cfg = JSON.parse(readFileSync(SHEET_FILE, 'utf8'));
+    return { webAppUrl: (cfg.webAppUrl || '').trim(), token: (cfg.token || '').trim() };
+  } catch {
+    return { webAppUrl: '', token: '' };
+  }
+}
 
 // Parse config/searches.txt — plain "LABEL = URL" lines, # comments ignored.
 function readSearchesTxt() {
@@ -59,6 +73,57 @@ function readBrandsJson() {
 // Read fresh each request so config edits show up on refresh, no restart.
 app.get('/api/brands', (_req, res) => {
   res.json({ brands: [...readSearchesTxt(), ...readBrandsJson()] });
+});
+
+// Whether the "Add to Google Sheet" button should show.
+app.get('/api/sheet/status', (_req, res) => {
+  res.json({ configured: !!readSheetConfig().webAppUrl });
+});
+
+// Forward rows to the user's Apps Script Web App. The URL/token stay
+// server-side; the browser never sees them.
+app.post('/api/sheet', async (req, res) => {
+  const { webAppUrl, token } = readSheetConfig();
+  if (!webAppUrl) {
+    res.status(400).json({
+      success: false,
+      error: 'Google Sheet endpoint not configured. Set SHEET_WEBAPP_URL (env) or config/sheet.json.',
+    });
+    return;
+  }
+  const rows = Array.isArray(req.body?.rows) ? req.body.rows : [];
+  if (!rows.length) {
+    res.status(400).json({ success: false, error: 'No rows to add.' });
+    return;
+  }
+  try {
+    const r = await fetch(webAppUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, rows }),
+      redirect: 'follow',
+    });
+    const text = await r.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      // Apps Script often returns an HTML login page if the deployment isn't
+      // set to "Anyone" access — surface a useful hint instead of raw HTML.
+      data = {
+        success: false,
+        error:
+          `Unexpected non-JSON response from the Apps Script (HTTP ${r.status}). ` +
+          'Check the deployment is a Web App with access set to "Anyone".',
+      };
+    }
+    res.status(data.success === false ? 502 : 200).json(data);
+  } catch (err) {
+    res.status(502).json({
+      success: false,
+      error: `Failed to reach Google Sheet endpoint: ${err.message}`,
+    });
+  }
 });
 
 // Simple in-memory cache of the last run per session so CSV export works

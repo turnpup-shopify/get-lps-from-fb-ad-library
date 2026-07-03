@@ -1,0 +1,5 @@
+{
+  "_comment": "Copy this file to config/sheet.json (git-ignored) and fill in your Apps Script Web App URL. Or set env vars SHEET_WEBAPP_URL and SHEET_TOKEN instead. When configured, an 'Add to Google Sheet' button appears on the results screen. See docs/apps-script.gs for the script to deploy.",
+  "webAppUrl": "https://script.google.com/macros/s/XXXXXXXX/exec",
+  "token": ""
+}

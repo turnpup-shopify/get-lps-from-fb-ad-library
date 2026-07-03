@@ -57,6 +57,15 @@
     .previews { display: flex; flex-wrap: wrap; gap: 6px; }
     .previews a { font-size: 0.78rem; color: var(--chip); text-decoration: none; background: var(--panel-2); border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; }
     .previews a:hover { border-color: var(--chip); }
+    .sheet-btn { background: #16a34a; color: #fff; border: 0; border-radius: 8px; padding: 8px 14px; font-size: 0.85rem; font-weight: 600; cursor: pointer; }
+    .sheet-btn:hover { background: #15803d; }
+    .sheet-btn:disabled { opacity: 0.55; cursor: default; }
+    .row-sheet-btn { background: var(--panel-2); color: #4ade80; border: 1px solid var(--border); border-radius: 6px; padding: 3px 10px; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+    .row-sheet-btn:hover { border-color: #4ade80; }
+    .row-sheet-btn:disabled { opacity: 0.6; cursor: default; color: var(--muted); }
+    .sheet-status { align-self: center; margin-right: auto; font-size: 0.85rem; color: var(--muted); }
+    .sheet-status.ok { color: #4ade80; }
+    .sheet-status.bad { color: #fca5a5; }
     .error { color: #fca5a5; }
     .muted { color: var(--muted); }
     details summary { cursor: pointer; color: var(--muted); font-size: 0.8rem; }
@@ -119,12 +128,14 @@
       </div>
       <p class="muted" style="margin:6px 0 14px;"><a id="searchLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);">Open this search on Facebook Ad Library ↗</a></p>
       <div class="toolbar">
+        <span id="sheetStatus" class="sheet-status"></span>
+        <button type="button" id="addAllSheet" class="sheet-btn" style="display:none;">➕ Add all to Google Sheet</button>
         <a id="dlSummary" href="#">⬇ Summary CSV</a>
         <a id="dlAds" href="#">⬇ All ads CSV</a>
       </div>
       <table>
         <thead>
-          <tr><th>#</th><th>Ads</th><th>Website</th><th>Ad previews</th></tr>
+          <tr><th>#</th><th>Ads</th><th>Website</th><th>Ad previews</th><th id="sheetCol" style="display:none;">Sheet</th></tr>
         </thead>
         <tbody id="rows"></tbody>
       </table>

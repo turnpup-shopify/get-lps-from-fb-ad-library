@@ -5,4 +5,6 @@ node_modules/
 *-ads.csv
 results.json
 *.local.json
+# holds your Google Sheet web-app URL / token — keep it out of git
+config/sheet.json
 .DS_Store
