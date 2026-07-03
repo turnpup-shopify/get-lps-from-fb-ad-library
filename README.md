@@ -147,8 +147,12 @@ To set it up from scratch:
 The web-app URL and token live **server-side only**; the browser posts to this
 app's `/api/sheet`, which forwards to Google. Each pushed row contains:
 `site` (website), `link` (landing URL), `brand` (advertiser Page name), `image`,
-`type`, plus `adCount` and `previewUrl`. If no sheet is configured, the button
-simply doesn't appear.
+`type`, plus `adCount` and `previewUrl`.
+
+The included [`docs/apps-script.gs`](docs/apps-script.gs) writes to a sheet with
+columns **`sites | links | brands | images | Type`** (first tab by default) and
+de-duplicates by link. To use different columns/order or a named tab, edit the
+`COLUMNS` / `SHEET_NAME` constants at the top of that script.
 
 ## Output
 

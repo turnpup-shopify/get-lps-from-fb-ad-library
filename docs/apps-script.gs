@@ -1,25 +1,35 @@
 /**
- * Google Apps Script Web App — appends landing-page rows to a Google Sheet,
+ * Google Apps Script Web App — appends landing-page rows to your Google Sheet,
  * de-duplicating by link. Pairs with this app's "Add to Google Sheet" button.
  *
- * DEPLOY
- * 1. Open the target Google Sheet → Extensions → Apps Script.
- * 2. Paste this whole file in, save.
- * 3. (Optional) To require a token: Project Settings → Script Properties →
- *    add property API_TOKEN = <some-secret>. Put the same value in the app's
- *    config/sheet.json "token" (or SHEET_TOKEN env var).
- * 4. Deploy → New deployment → type "Web app".
- *      - Execute as: Me
- *      - Who has access: Anyone
- *    Deploy, authorize, and copy the Web app URL (…/exec).
- * 5. Put that URL in the app's config/sheet.json "webAppUrl" (or SHEET_WEBAPP_URL).
+ * Matches a sheet with these columns (in this order):
+ *   sites | links | brands | images | Type
  *
- * Request  : POST JSON { token, rows:[{site,link,brand,image,type,adCount,previewUrl}] }
- * Response : { success, addedCount, skippedCount } or { success:false, error }
+ * DEPLOY / REDEPLOY
+ * 1. Open the target Google Sheet → Extensions → Apps Script.
+ * 2. Delete the existing code, paste this whole file, and Save.
+ * 3. Deploy → Manage deployments → Edit (pencil) → Version: "New version" →
+ *    Deploy.  (Editing the existing deployment keeps your current /exec URL.)
+ *    - Execute as: Me
+ *    - Who has access: Anyone
+ * 4. (Optional) Require a token: Project Settings → Script Properties →
+ *    API_TOKEN = <secret>, and set the same value as SHEET_TOKEN in the app.
+ *
+ * Sanity check: open the /exec URL in a browser → {"success":true,"status":"ready"}
+ *
+ * Request  : POST JSON { token, rows:[{site,link,brand,image,type}] }
+ * Response : { success, addedCount, skippedCount }  or  { success:false, error }
  */
 
-const SHEET_NAME = 'Landing Pages';
-const HEADERS = ['Site', 'Link', 'Brand', 'Image', 'Type', 'Ad Count', 'Preview URL', 'Date Added'];
+// Leave '' to use the first tab in the spreadsheet, or set your tab's name.
+const SHEET_NAME = '';
+
+// Column order written to the sheet: sites, links, brands, images, Type.
+// Change the field names here if your columns are in a different order.
+const COLUMNS = ['site', 'link', 'brand', 'image', 'type'];
+
+// 1-based index (within COLUMNS) of the column used to detect duplicates.
+const DEDUPE_COL = 2; // "links"
 
 function doPost(e) {
   try {
@@ -32,24 +42,23 @@ function doPost(e) {
 
     const rows = Array.isArray(body.rows) ? body.rows : [];
     const sheet = getSheet();
-    const existing = getExistingLinks(sheet);
+    const existing = getExistingValues(sheet, DEDUPE_COL);
 
     let added = 0;
     let skipped = 0;
     const toAppend = [];
     rows.forEach((r) => {
-      const link = String(r.link || '').trim();
-      if (link && existing.has(link)) { skipped++; return; }
-      if (link) existing.add(link);
-      toAppend.push([
-        r.site || '', link, r.brand || '', r.image || '', r.type || '',
-        r.adCount != null ? r.adCount : '', r.previewUrl || '', new Date(),
-      ]);
+      const dedupeKey = String(r[COLUMNS[DEDUPE_COL - 1]] || '').trim();
+      if (dedupeKey && existing.has(dedupeKey)) { skipped++; return; }
+      if (dedupeKey) existing.add(dedupeKey);
+      toAppend.push(COLUMNS.map((field) => valueOf(r[field])));
       added++;
     });
 
     if (toAppend.length) {
-      sheet.getRange(sheet.getLastRow() + 1, 1, toAppend.length, HEADERS.length).setValues(toAppend);
+      sheet
+        .getRange(sheet.getLastRow() + 1, 1, toAppend.length, COLUMNS.length)
+        .setValues(toAppend);
     }
     return json({ success: true, addedCount: added, skippedCount: skipped });
   } catch (err) {
@@ -64,19 +73,25 @@ function doGet() {
 
 function getSheet() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sh = ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
-  if (sh.getLastRow() === 0) sh.appendRow(HEADERS);
-  return sh;
+  if (SHEET_NAME) {
+    return ss.getSheetByName(SHEET_NAME) || ss.insertSheet(SHEET_NAME);
+  }
+  return ss.getSheets()[0];
 }
 
-function getExistingLinks(sheet) {
+// Values already present in the dedupe column (skips the header row).
+function getExistingValues(sheet, col) {
   const set = new Set();
   const last = sheet.getLastRow();
   if (last < 2) return set;
-  sheet.getRange(2, 2, last - 1, 1).getValues().forEach((v) => {
-    if (v[0]) set.add(String(v[0]).trim());
+  sheet.getRange(2, col, last - 1, 1).getValues().forEach((v) => {
+    if (v[0] !== '' && v[0] != null) set.add(String(v[0]).trim());
   });
   return set;
+}
+
+function valueOf(v) {
+  return v == null ? '' : v;
 }
 
 function json(obj) {
