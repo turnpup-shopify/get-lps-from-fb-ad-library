@@ -233,7 +233,16 @@ app.get('/api/export/:runId/:kind', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`\n  Facebook Ad Library → Landing Pages`);
   console.log(`  Web UI running at http://localhost:${PORT}\n`);
 });
+
+// Exit cleanly on host stop/redeploy signals (no false "failed" status).
+for (const signal of ['SIGTERM', 'SIGINT']) {
+  process.on(signal, () => {
+    console.log(`Received ${signal}, shutting down.`);
+    server.close(() => process.exit(0));
+    setTimeout(() => process.exit(0), 5000).unref();
+  });
+}

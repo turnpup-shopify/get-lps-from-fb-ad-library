@@ -7,6 +7,13 @@ FROM mcr.microsoft.com/playwright:v1.61.1-jammy
 
 WORKDIR /app
 
+# dumb-init as PID 1: forwards SIGTERM/SIGINT cleanly (no noisy npm "signal
+# SIGTERM" errors on redeploy) and reaps zombie Chromium child processes so
+# repeated scrapes don't leak processes and eventually crash the container.
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends dumb-init \
+  && rm -rf /var/lib/apt/lists/*
+
 COPY package*.json ./
 RUN npm ci --omit=dev
 
@@ -16,4 +23,6 @@ ENV NODE_ENV=production
 # Most hosts inject PORT; the server falls back to 3000 locally.
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# Run node directly (not via npm) so signal handling is clean.
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "src/server.js"]
