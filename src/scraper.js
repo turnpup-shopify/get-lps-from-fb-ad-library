@@ -267,7 +267,16 @@ export async function scrapeAdLibrary(opts) {
     headless,
     executablePath: resolveExecutablePath(),
     ...(proxyServer ? { proxy: { server: proxyServer } } : {}),
-    args: ['--disable-blink-features=AutomationControlled', '--no-sandbox'],
+    args: [
+      '--disable-blink-features=AutomationControlled',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      // Small containers (e.g. Render free tier) have a tiny /dev/shm; without
+      // this Chromium can crash/OOM. These keep memory use lower.
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      '--no-zygote',
+    ],
   });
 
   const collected = [];
