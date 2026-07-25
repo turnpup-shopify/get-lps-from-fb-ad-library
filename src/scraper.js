@@ -272,6 +272,7 @@ export async function scrapeAdLibrary(opts) {
 
   const collected = [];
   const seen = new Set();
+  let diagnostics = null;
 
   try {
     const context = await browser.newContext({
@@ -283,10 +284,15 @@ export async function scrapeAdLibrary(opts) {
     });
     const page = await context.newPage();
 
+    // Diagnostics — help explain a 0-ad run.
+    let graphqlCount = 0;
+    let adResponseCount = 0;
+
     // Capture ad data from every GraphQL-ish response.
     page.on('response', async (response) => {
       const url = response.url();
       if (!/\/api\/graphql|graphql\/?(\?|$)/.test(url)) return;
+      graphqlCount++;
       let text;
       try {
         text = await response.text();
@@ -294,6 +300,7 @@ export async function scrapeAdLibrary(opts) {
         return;
       }
       if (!text || !text.includes('ad_archive_id')) return;
+      adResponseCount++;
       for (const payload of parseMultiJson(text)) {
         collectAdsFromNode(payload, collected, seen);
       }
@@ -301,8 +308,9 @@ export async function scrapeAdLibrary(opts) {
 
     onProgress('opening ad library', { searchUrl });
     await page.goto(searchUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(3000);
     await dismissDialogs(page);
+    await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(1500);
 
     // Scroll to trigger lazy pagination. Stop when no new ads arrive for a
@@ -335,11 +343,33 @@ export async function scrapeAdLibrary(opts) {
       }
     }
 
+    // If we came up empty, figure out why: a login/consent wall means Facebook
+    // is blocking this (IP/headless), not that the page has no ads.
+    if (collected.length === 0) {
+      const pageTitle = await page.title().catch(() => '');
+      const wallInfo = await page
+        .evaluate(() => {
+          const text = document.body ? document.body.innerText : '';
+          const sample = text.slice(0, 300).replace(/\s+/g, ' ').trim();
+          const loginWall =
+            /log in|log into facebook|you must log in|create new account/i.test(text) ||
+            !!document.querySelector('input[name="email"], input[name="pass"]');
+          return { loginWall, sample };
+        })
+        .catch(() => ({ loginWall: false, sample: '' }));
+      onProgress(
+        `diagnostics: graphqlResponses=${graphqlCount}, adResponses=${adResponseCount}, ` +
+          `loginWall=${wallInfo.loginWall}, title="${pageTitle}"`,
+      );
+      if (wallInfo.sample) onProgress(`page text: "${wallInfo.sample}"`);
+      diagnostics = { graphqlCount, adResponseCount, loginWall: wallInfo.loginWall, pageTitle };
+    }
+
     onProgress('done', { count: collected.length });
   } finally {
     await browser.close();
   }
 
   const ads = maxAds ? collected.slice(0, maxAds) : collected;
-  return { ads, searchUrl };
+  return { ads, searchUrl, diagnostics };
 }
