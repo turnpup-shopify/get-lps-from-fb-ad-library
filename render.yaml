@@ -1,0 +1,18 @@
+# Render Blueprint — deploys this app straight from the GitHub repo.
+# In Render: New → Blueprint → pick this repo/branch. Render reads this file,
+# builds the Dockerfile, and gives you a public https://<name>.onrender.com URL.
+# It redeploys automatically on every push to the branch.
+services:
+  - type: web
+    name: fb-ad-library-lps
+    runtime: docker
+    plan: free           # free tier sleeps when idle; bump to "starter" to stay warm
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # Render injects PORT automatically; the server reads it.
+      # If your Apps Script needs a token, add it here (Dashboard → Environment):
+      # - key: SHEET_TOKEN
+      #   sync: false

@@ -47,6 +47,31 @@ npm start
 # open http://localhost:3000
 ```
 
+## Deploy to a public URL (use it in a browser, no local setup)
+
+> **Note:** GitHub Pages **cannot** host this app — Pages only serves static
+> files, and this app needs a Node server plus a headless browser. Use a
+> container host instead. A `Dockerfile` and Render blueprint are included.
+
+**Render (deploys from GitHub, closest to "publish via GitHub"):**
+
+1. Push this branch to GitHub (already done).
+2. In [Render](https://render.com): **New → Blueprint**, pick this repo + branch.
+   Render reads [`render.yaml`](render.yaml), builds the [`Dockerfile`](Dockerfile),
+   and gives you `https://<name>.onrender.com`. It redeploys on every push.
+3. Open the URL — the full web UI works in the browser.
+
+Notes:
+- The free plan **sleeps when idle** and cold-starts slowly; upgrade to keep it warm.
+- The image bundles Chromium (official Playwright base image), so scraping works.
+- The container is **public by default** — anyone with the URL can run scrapes and
+  push to your sheet. Add access control (e.g. Render's password protection, or an
+  auth layer) if that matters. Keep any Apps Script token in the `SHEET_TOKEN` env
+  var (Render Dashboard → Environment), not in the repo.
+
+Any other Docker host works too (Google Cloud Run, Fly.io, Railway) — build the
+included `Dockerfile` and expose the port from `$PORT`.
+
 Enter a brand (e.g. `Allbirds`), pick a country and a max ad count, choose grouping,
 and hit **Scrape**. You'll see live progress, then a table of websites with ad
 counts and per-ad preview links, plus **Summary CSV** / **All ads CSV** downloads.
